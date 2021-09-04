@@ -3491,6 +3491,7 @@ dependencies = [
  "lzma-rs",
  "num-derive",
  "num-traits",
+ "serde",
  "smallvec",
 ]
 

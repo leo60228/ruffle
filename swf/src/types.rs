@@ -5,6 +5,7 @@
 //! https://www.adobe.com/content/dam/acom/en/devnet/pdf/swf-file-format-spec.pdf
 use crate::string::SwfStr;
 use bitflags::bitflags;
+use serde::Serialize;
 
 mod fixed;
 mod matrix;
@@ -14,7 +15,7 @@ pub use matrix::Matrix;
 
 /// A complete header and tags in the SWF file.
 /// This is returned by the `swf::parse_swf` convenience method.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Swf<'a> {
     pub header: HeaderExt,
     pub tags: Vec<Tag<'a>>,
@@ -35,7 +36,7 @@ pub struct SwfBuf {
 /// Notably contains the compression format used by the rest of the SWF data.
 ///
 /// [SWF19 p.27](https://www.adobe.com/content/dam/acom/en/devnet/pdf/swf-file-format-spec.pdf#page=27)
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Header {
     pub compression: Compression,
     pub version: u8,
@@ -64,7 +65,7 @@ impl Header {
 /// This metadata may not reflect the actual data inside a malformed SWF; for example,
 /// the root timeline my actually contain fewer frames than `HeaderExt::num_frames` if it is
 /// corrupted.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct HeaderExt {
     pub(crate) header: Header,
     pub(crate) file_attributes: FileAttributes,
@@ -175,7 +176,7 @@ impl HeaderExt {
 ///
 /// The vast majority of SWFs will use zlib compression.
 /// [SWF19 p.27](https://www.adobe.com/content/dam/acom/en/devnet/pdf/swf-file-format-spec.pdf#page=27)
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
 pub enum Compression {
     None,
     Zlib,
@@ -193,7 +194,7 @@ pub enum Compression {
 ///
 /// [`from_pixels`]: Twips::from_pixels
 /// [`to_pixels`]: Twips::to_pixels
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Default, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default, PartialOrd, Ord, Serialize)]
 pub struct Twips(i32);
 
 impl Twips {
@@ -368,7 +369,7 @@ impl std::fmt::Display for Twips {
 /// A rectangular region defined by minimum
 /// and maximum x- and y-coordinate positions
 /// measured in [`Twips`].
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone, Default, Serialize)]
 pub struct Rectangle {
     /// The minimum x-position of the rectangle.
     pub x_min: Twips,
@@ -386,7 +387,7 @@ pub struct Rectangle {
 /// An RGBA (red, green, blue, alpha) color.
 ///
 /// All components are stored as [`u8`] and have a color range of 0-255.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Color {
     /// The red component value.
     pub r: u8,
@@ -466,7 +467,7 @@ impl Color {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ColorTransform {
     pub r_multiply: Fixed8,
     pub g_multiply: Fixed8,
@@ -499,7 +500,7 @@ impl Default for ColorTransform {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, FromPrimitive)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, FromPrimitive, Serialize)]
 pub enum Language {
     Unknown = 0,
     Latin = 1,
@@ -519,6 +520,7 @@ bitflags! {
     /// Flags that define various characteristic of an SWF file.
     ///
     /// [SWF19 pp.57-58 ClipEvent](https://www.adobe.com/content/dam/acom/en/devnet/pdf/swf-file-format-spec.pdf#page=47)
+    #[derive(Serialize)]
     pub struct FileAttributes: u8 {
         /// Whether this SWF requests hardware acceleration to blit to the screen.
         const USE_DIRECT_BLIT = 1 << 6;
@@ -547,19 +549,19 @@ impl Default for FileAttributes {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct FrameLabel<'a> {
     pub label: &'a SwfStr,
     pub is_anchor: bool,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct DefineSceneAndFrameLabelData<'a> {
     pub scenes: Vec<FrameLabelData<'a>>,
     pub frame_labels: Vec<FrameLabelData<'a>>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct FrameLabelData<'a> {
     pub frame_num: u32,
     pub label: &'a SwfStr,
@@ -568,7 +570,7 @@ pub struct FrameLabelData<'a> {
 pub type Depth = u16;
 pub type CharacterId = u16;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct PlaceObject<'a> {
     pub version: u8,
     pub action: PlaceObjectAction,
@@ -589,14 +591,14 @@ pub struct PlaceObject<'a> {
     pub amf_data: Option<&'a [u8]>,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 pub enum PlaceObjectAction {
     Place(CharacterId),
     Modify,
     Replace(CharacterId),
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum Filter {
     DropShadowFilter(Box<DropShadowFilter>),
     BlurFilter(Box<BlurFilter>),
@@ -608,7 +610,7 @@ pub enum Filter {
     GradientBevelFilter(Box<GradientBevelFilter>),
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct DropShadowFilter {
     pub color: Color,
     pub blur_x: Fixed16,
@@ -621,14 +623,14 @@ pub struct DropShadowFilter {
     pub num_passes: u8,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct BlurFilter {
     pub blur_x: Fixed16,
     pub blur_y: Fixed16,
     pub num_passes: u8,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct GlowFilter {
     pub color: Color,
     pub blur_x: Fixed16,
@@ -639,7 +641,7 @@ pub struct GlowFilter {
     pub num_passes: u8,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct BevelFilter {
     pub shadow_color: Color,
     pub highlight_color: Color,
@@ -654,7 +656,7 @@ pub struct BevelFilter {
     pub num_passes: u8,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct GradientGlowFilter {
     pub colors: Vec<GradientRecord>,
     pub blur_x: Fixed16,
@@ -668,7 +670,7 @@ pub struct GradientGlowFilter {
     pub num_passes: u8,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ConvolutionFilter {
     pub num_matrix_rows: u8,
     pub num_matrix_cols: u8,
@@ -680,12 +682,12 @@ pub struct ConvolutionFilter {
     pub is_preserve_alpha: bool,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ColorMatrixFilter {
     pub matrix: [Fixed16; 20],
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct GradientBevelFilter {
     pub colors: Vec<GradientRecord>,
     pub blur_x: Fixed16,
@@ -699,7 +701,7 @@ pub struct GradientBevelFilter {
     pub num_passes: u8,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, FromPrimitive)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, FromPrimitive, Serialize)]
 pub enum BlendMode {
     Normal = 0,
     Layer = 2,
@@ -730,7 +732,7 @@ impl BlendMode {
 /// Created in the Flash IDE using `onClipEvent` or `on` blocks.
 ///
 /// [SWF19 pp.37-38 ClipActionRecord](https://www.adobe.com/content/dam/acom/en/devnet/pdf/swf-file-format-spec.pdf#page=39)
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ClipAction<'a> {
     pub events: ClipEventFlag,
     pub key_code: Option<KeyCode>,
@@ -741,6 +743,7 @@ bitflags! {
     /// An event that can be attached to a MovieClip instance using an `onClipEvent` or `on` block.
     ///
     /// [SWF19 pp.48-50 ClipEvent](https://www.adobe.com/content/dam/acom/en/devnet/pdf/swf-file-format-spec.pdf#page=50)
+    #[derive(Serialize)]
     pub struct ClipEventFlag: u32 {
         const LOAD            = 1 << 0;
         const ENTER_FRAME     = 1 << 1;
@@ -779,7 +782,7 @@ pub type KeyCode = u8;
 /// an instance of these characters on the display list.
 ///
 // [SWF19 p.29](https://www.adobe.com/content/dam/acom/en/devnet/pdf/swf-file-format-spec.pdf#page=29)
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub enum Tag<'a> {
     ExportAssets(ExportAssets<'a>),
     ScriptLimits {
@@ -881,13 +884,13 @@ pub enum Tag<'a> {
 
 pub type ExportAssets<'a> = Vec<ExportedAsset<'a>>;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ExportedAsset<'a> {
     pub id: CharacterId,
     pub name: &'a SwfStr,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct RemoveObject {
     pub depth: Depth,
     pub character_id: Option<CharacterId>,
@@ -895,13 +898,13 @@ pub struct RemoveObject {
 
 pub type SetBackgroundColor = Color;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct SymbolClassLink<'a> {
     pub id: CharacterId,
     pub class_name: &'a SwfStr,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ShapeContext {
     pub swf_version: u8,
     pub shape_version: u8,
@@ -909,7 +912,7 @@ pub struct ShapeContext {
     pub num_line_bits: u8,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Shape {
     pub version: u8,
     pub id: CharacterId,
@@ -922,7 +925,7 @@ pub struct Shape {
     pub shape: Vec<ShapeRecord>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Sound<'a> {
     pub id: CharacterId,
     pub format: SoundFormat,
@@ -930,7 +933,7 @@ pub struct Sound<'a> {
     pub data: &'a [u8],
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct SoundInfo {
     pub event: SoundEvent,
     pub in_sample: Option<u32>,
@@ -939,7 +942,7 @@ pub struct SoundInfo {
     pub envelope: Option<SoundEnvelope>,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive)]
+#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive, Serialize)]
 pub enum SoundEvent {
     Event = 0,
     Start = 1,
@@ -957,33 +960,33 @@ impl SoundEvent {
 
 pub type SoundEnvelope = Vec<SoundEnvelopePoint>;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct SoundEnvelopePoint {
     pub sample: u32,
     pub left_volume: f32,
     pub right_volume: f32,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct StartSound {
     pub id: CharacterId,
     pub sound_info: Box<SoundInfo>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub struct Sprite<'a> {
     pub id: CharacterId,
     pub num_frames: u16,
     pub tags: Vec<Tag<'a>>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ShapeStyles {
     pub fill_styles: Vec<FillStyle>,
     pub line_styles: Vec<LineStyle>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum ShapeRecord {
     StyleChange(StyleChangeData),
     StraightEdge {
@@ -998,7 +1001,7 @@ pub enum ShapeRecord {
     },
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct StyleChangeData {
     pub move_to: Option<(Twips, Twips)>,
     pub fill_style_0: Option<u32>,
@@ -1007,7 +1010,7 @@ pub struct StyleChangeData {
     pub new_styles: Option<ShapeStyles>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum FillStyle {
     Color(Color),
     LinearGradient(Gradient),
@@ -1024,7 +1027,7 @@ pub enum FillStyle {
     },
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Gradient {
     pub matrix: Matrix,
     pub spread: GradientSpread,
@@ -1032,7 +1035,7 @@ pub struct Gradient {
     pub records: Vec<GradientRecord>,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive)]
+#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive, Serialize)]
 pub enum GradientSpread {
     Pad = 0,
     Reflect = 1,
@@ -1045,7 +1048,7 @@ impl GradientSpread {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive)]
+#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive, Serialize)]
 pub enum GradientInterpolation {
     Rgb = 0,
     LinearRgb = 1,
@@ -1057,13 +1060,13 @@ impl GradientInterpolation {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct GradientRecord {
     pub ratio: u8,
     pub color: Color,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct LineStyle {
     pub width: Twips,
     pub color: Color,
@@ -1094,7 +1097,7 @@ impl LineStyle {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive)]
+#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive, Serialize)]
 pub enum LineCapStyle {
     Round = 0,
     None = 1,
@@ -1107,14 +1110,14 @@ impl LineCapStyle {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize)]
 pub enum LineJoinStyle {
     Round,
     Bevel,
     Miter(Fixed8),
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive)]
+#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive, Serialize)]
 pub enum AudioCompression {
     UncompressedUnknownEndian = 0,
     Adpcm = 1,
@@ -1132,7 +1135,7 @@ impl AudioCompression {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct SoundFormat {
     pub compression: AudioCompression,
     pub sample_rate: u16,
@@ -1140,7 +1143,7 @@ pub struct SoundFormat {
     pub is_16_bit: bool,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct SoundStreamHead {
     pub stream_format: SoundFormat,
     pub playback_format: SoundFormat,
@@ -1150,7 +1153,7 @@ pub struct SoundStreamHead {
 
 pub type SoundStreamBlock<'a> = &'a [u8];
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Button<'a> {
     pub id: CharacterId,
     pub is_track_as_menu: bool,
@@ -1158,7 +1161,7 @@ pub struct Button<'a> {
     pub actions: Vec<ButtonAction<'a>>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ButtonRecord {
     pub states: ButtonState,
     pub id: CharacterId,
@@ -1170,6 +1173,7 @@ pub struct ButtonRecord {
 }
 
 bitflags! {
+    #[derive(Serialize)]
     pub struct ButtonState: u8 {
         const UP       = 1 << 0;
         const OVER     = 1 << 1;
@@ -1178,13 +1182,13 @@ bitflags! {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ButtonColorTransform {
     pub id: CharacterId,
     pub color_transforms: Vec<ColorTransform>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ButtonSounds {
     pub id: CharacterId,
     pub over_to_up_sound: Option<ButtonSound>,
@@ -1195,7 +1199,7 @@ pub struct ButtonSounds {
 
 pub type ButtonSound = (CharacterId, SoundInfo);
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ButtonAction<'a> {
     pub conditions: ButtonActionCondition,
     pub key_code: Option<u8>,
@@ -1203,6 +1207,7 @@ pub struct ButtonAction<'a> {
 }
 
 bitflags! {
+    #[derive(Serialize)]
     pub struct ButtonActionCondition: u16 {
         const IDLE_TO_OVER_UP       = 1 << 0;
         const OVER_UP_TO_IDLE       = 1 << 1;
@@ -1217,7 +1222,7 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct DefineMorphShape {
     pub version: u8,
     pub id: CharacterId,
@@ -1227,7 +1232,7 @@ pub struct DefineMorphShape {
     pub end: MorphShape,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct MorphShape {
     pub shape_bounds: Rectangle,
     pub edge_bounds: Rectangle,
@@ -1236,13 +1241,13 @@ pub struct MorphShape {
     pub shape: Vec<ShapeRecord>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct FontV1 {
     pub id: CharacterId,
     pub glyphs: Vec<Vec<ShapeRecord>>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Font<'a> {
     pub version: u8,
     pub id: CharacterId,
@@ -1257,7 +1262,7 @@ pub struct Font<'a> {
     pub is_italic: bool,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Font4<'a> {
     pub id: CharacterId,
     pub is_italic: bool,
@@ -1266,7 +1271,7 @@ pub struct Font4<'a> {
     pub data: Option<&'a [u8]>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Glyph {
     pub shape_records: Vec<ShapeRecord>,
     pub code: u16,
@@ -1274,7 +1279,7 @@ pub struct Glyph {
     pub bounds: Option<Rectangle>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct FontLayout {
     pub ascent: u16,
     pub descent: u16,
@@ -1282,14 +1287,14 @@ pub struct FontLayout {
     pub kerning: Vec<KerningRecord>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct KerningRecord {
     pub left_code: u16,
     pub right_code: u16,
     pub adjustment: Twips,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct FontInfo<'a> {
     pub id: CharacterId,
     pub version: u8,
@@ -1303,13 +1308,13 @@ pub struct FontInfo<'a> {
     pub code_table: Vec<u16>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct DefineBinaryData<'a> {
     pub id: CharacterId,
     pub data: &'a [u8],
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Text {
     pub id: CharacterId,
     pub bounds: Rectangle,
@@ -1317,7 +1322,7 @@ pub struct Text {
     pub records: Vec<TextRecord>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct TextRecord {
     pub font_id: Option<CharacterId>,
     pub color: Option<Color>,
@@ -1327,13 +1332,13 @@ pub struct TextRecord {
     pub glyphs: Vec<GlyphEntry>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct GlyphEntry {
     pub index: u32,
     pub advance: i32,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct EditText<'a> {
     pub id: CharacterId,
     pub bounds: Rectangle,
@@ -1357,7 +1362,7 @@ pub struct EditText<'a> {
     pub is_device_font: bool,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct TextLayout {
     pub align: TextAlign,
     pub left_margin: Twips,
@@ -1366,7 +1371,7 @@ pub struct TextLayout {
     pub leading: Twips,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive, Serialize)]
 pub enum TextAlign {
     Left = 0,
     Right = 1,
@@ -1380,7 +1385,7 @@ impl TextAlign {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct FontAlignZone {
     // TODO(Herschel): Read these as f16s.
     pub left: i16,
@@ -1389,7 +1394,7 @@ pub struct FontAlignZone {
     pub height: i16,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive, Serialize)]
 pub enum FontThickness {
     Thin = 0,
     Medium = 1,
@@ -1402,7 +1407,7 @@ impl FontThickness {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct CsmTextSettings {
     pub id: CharacterId,
     pub use_advanced_rendering: bool,
@@ -1411,7 +1416,7 @@ pub struct CsmTextSettings {
     pub sharpness: f32,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive, Serialize)]
 pub enum TextGridFit {
     None = 0,
     Pixel = 1,
@@ -1424,7 +1429,7 @@ impl TextGridFit {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct DefineBitsLossless<'a> {
     pub version: u8,
     pub id: CharacterId,
@@ -1434,14 +1439,14 @@ pub struct DefineBitsLossless<'a> {
     pub data: &'a [u8],
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum BitmapFormat {
     ColorMap8 { num_colors: u8 },
     Rgb15,
     Rgb32,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct DefineVideoStream {
     pub id: CharacterId,
     pub num_frames: u16,
@@ -1452,7 +1457,7 @@ pub struct DefineVideoStream {
     pub codec: VideoCodec,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive, Serialize)]
 pub enum VideoDeblocking {
     UseVideoPacketValue = 0,
     None = 1,
@@ -1468,7 +1473,7 @@ impl VideoDeblocking {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive, Serialize)]
 pub enum VideoCodec {
     H263 = 2,
     ScreenVideo = 3,
@@ -1483,14 +1488,14 @@ impl VideoCodec {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct VideoFrame<'a> {
     pub stream_id: CharacterId,
     pub frame_num: u16,
     pub data: &'a [u8],
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct DefineBitsJpeg3<'a> {
     pub id: CharacterId,
     pub version: u8,
@@ -1499,7 +1504,7 @@ pub struct DefineBitsJpeg3<'a> {
     pub alpha_data: &'a [u8],
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct DoAbc<'a> {
     pub name: &'a SwfStr,
     pub is_lazy_initialize: bool,
@@ -1513,7 +1518,7 @@ pub type JpegTables<'a> = &'a [u8];
 /// `ProductInfo` contains information about the software used to generate the SWF.
 /// Not documented in the SWF19 reference. Emitted by mxmlc.
 /// See http://wahlers.com.br/claus/blog/undocumented-swf-tags-written-by-mxmlc/
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ProductInfo {
     pub product_id: u32,
     pub edition: u32,
@@ -1529,7 +1534,7 @@ pub type DebugId = [u8; 16];
 /// An undocumented and unused tag to set the instance name of a character.
 /// This seems to have no effect in the official Flash Player.
 /// Superseded by the PlaceObject2 tag.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NameCharacter<'a> {
     pub id: CharacterId,
     pub name: &'a SwfStr,

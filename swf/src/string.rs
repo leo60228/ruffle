@@ -1,6 +1,7 @@
 //! String type used by SWF files.
 
 pub use encoding_rs::{Encoding, SHIFT_JIS, UTF_8, WINDOWS_1252};
+use serde::Serialize;
 use std::{borrow::Cow, fmt};
 
 /// A bstr-like string type analogous to [`str`] that's returned by SWF parsing functions:
@@ -12,8 +13,9 @@ use std::{borrow::Cow, fmt};
 ///   any conversions to std::String will be lossy for invalid data.
 ///
 /// To convert this to a standard Rust string, use [`SwfStr::to_str_lossy`].
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Serialize)]
 #[repr(transparent)]
+#[serde(transparent)]
 pub struct SwfStr {
     /// The string bytes.
     string: [u8],
